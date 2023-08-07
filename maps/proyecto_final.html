@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>GeoJSON - Montañas</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="leaflet/leaflet.css" />
+	<script src="leaflet/leaflet.js"></script>
+	<script src="jquery/jquery-3.6.1.min.js"></script>
+</head>
+
+<body>
+	<div id="map" style="width:800px; height:600px;"></div>
+	
+	<script>
+		var zoomLevel = 4
+		var map = L.map('map').setView([-17.387, -66.158], zoomLevel);
+
+		//Proveedor: openstreetmap
+		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			maxZoom: 19,
+			attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+		}).addTo(map);
+
+		$(document).ready(function(){
+
+			
+			fetch('mountain_data.json')
+				.then((response)=>response.json())
+				.then((airports)=>addToMap(airports))
+		});
+
+		var IconProyecto =  L.Icon.extend({
+			options:{
+				iconSize: [25, 30],
+				iconAnchor: [20, 30],
+				popupAnchor: [1, -34],
+				shadowSize: [41, 41]
+			}
+		});
+
+
+		function verifyAltitude(feature){
+			let icono;
+			if(feature.properties.altitude <=4500)
+				return icono = new IconProyecto({iconUrl: './marker-icon-aqua.png'});
+			else if (feature.properties.altitude > 4500 && feature.properties.altitude <= 5500)
+				return icono = new IconProyecto({iconUrl: './marker-icon-teal.png'});
+			else if (feature.properties.altitude > 5500 && feature.properties.altitude <= 6500)
+				return icono = new IconProyecto({iconUrl: './marker-icon-blue.png'});
+			else
+				return icono  = new IconProyecto({iconUrl: './marker-icon-navy.png'});
+		}
+
+		function addToMap(featureCollection) {
+			let params = new URLSearchParams(document.location.search);
+			let country = params.get("country")
+
+			L.geoJSON(featureCollection, {
+				filter: function(feature) {
+					if(feature.geometry.coordinates[0] != null)
+					{
+						if(country != null || country== '')
+							{
+							return feature.properties.country == country
+								&& feature.geometry
+							}
+						return feature.geometry	
+					}
+				
+				},
+
+				pointToLayer:function(feature,layer){
+					label = feature.properties.name +"\n"+ 
+						feature.properties.country+"\n" + 
+						String(feature.properties.altitude);
+
+					return new L.marker(layer, {icon: verifyAltitude(feature)})
+						.bindTooltip(label);
+						layer.on({
+						mouseover: showTooltip,
+						mouseout: hideTooltip})
+
+				},
+			}).addTo(map);
+		}
+	</script>
+</body>
+</html>	
